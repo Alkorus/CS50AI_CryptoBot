@@ -8,29 +8,34 @@ from datetime import datetime
 
 import concurrent.futures
 
+
+
+STABLE_COIN_REFERENCE = 'USDT'
+
 class BiAPIGeneral:
 
     API_URL = 'https://api.binance.com/api/v3'
+    LOWEST_PRICE = 1
+    HIGHEST_PRICE = 300
     BASE_INTERVAL = '1m'
-
 
     def __init__(self):
         print("init API class")
         
 
     
-    def get_all_symbols(self, ref):
+    def get_all_symbols(self, ref, lowest_price = LOWEST_PRICE, highest_price = HIGHEST_PRICE):
         route_url = '/ticker/24hr'
         #url = self.API_URL + route_url
         url = f'{self.API_URL}{route_url}'
         cryptos = []
-        #print(url)
+        print(url)
         response = requests.get(url)
         if(response.status_code == requests.codes.ok):
             for crypto in response.json():
                 symbol = crypto['symbol']
                 price = float(crypto['lastPrice'])
-                if(symbol.endswith(ref) and price > 1 and price < 300):
+                if(symbol.endswith(ref) and price > lowest_price and price < highest_price):
                     #print(price)
                     symbol = symbol[:-len(ref)]
                     if not symbol.endswith("DOWN"):
@@ -101,8 +106,33 @@ class BiAPIGeneral:
     def convert_time_py_to_bi(self, time:datetime):
         return int(datetime.timestamp(time) * 1000)
 
+    def get_ref_stable_conversion(self, ref):
+        conversion = 1
+        
+        if ref == STABLE_COIN_REFERENCE:
+            return conversion
+        
+        route_url = '/ticker/price'
+        parameter_call = '?symbol='
+        symbol_parameter = f'{ref}{STABLE_COIN_REFERENCE}'
+        url = f'{self.API_URL}{route_url}{parameter_call}{symbol_parameter}'
 
+        response = requests.get(url)
 
+        if(response.status_code == requests.codes.bad_request):
+            symbol_parameter = f'{STABLE_COIN_REFERENCE}{ref}'
+            url = f'{self.API_URL}{route_url}{parameter_call}{symbol_parameter}'
+            response = requests.get(url)
+        #print(url)
+        if(response.status_code == requests.codes.ok):
+            exchange = response.json()
+            symbol = exchange['symbol']
+            price = float(exchange['price'])
+            if(symbol.endswith(STABLE_COIN_REFERENCE)):
+                conversion = price
+            else:
+                conversion = 1/price
+            return conversion
 
 async def main():
     #start_time = time.time()

@@ -4,23 +4,16 @@ from abc import ABC, abstractmethod
 import datetime
 
 
-class Trade_Parent:
+class Trade:
 
-    def __init__(self, crypto: Crypto, stop_loss, stop_gain):
+    def __init__(self, crypto: Crypto, entryValue):
         self._crypto = crypto
-        self._exit = 0
-        self._exit_stamp = datetime.datetime.now()
-        self._stop_loss = stop_loss
-        self._stop_gain = stop_gain
+        self._entryTime = crypto.openTime()
+        self._entryValue = entryValue 
+
 
     def crypto(self):
         return self._crypto
-
-    def stop_loss(self):
-        return self._stop_loss
-    
-    def stop_gain(self):
-        return self._stop_gain
 
     def exit(self):
         return float(self._exit)

@@ -8,17 +8,8 @@ import schedule
 import concurrent.futures
 
 from modeles.crypto import Crypto
-from modeles.trade_parent import Trade_Parent
-from modeles.trade_trend_testA import Trade_Trend_TestA
-from modeles.trade_trend_testB import Trade_Trend_TestB
-from modeles.trade_trend_testC import Trade_Trend_TestC
-from modeles.trade_trend_testD import Trade_Trend_TestD
-from modeles.trade_RSI_A import Trade_RSI_A
-from modeles.trade_RSI_B import Trade_RSI_B
-from modeles.trade_RSI_C import Trade_RSI_C
-from modeles.trade_RSI_D import Trade_RSI_D
-from modeles.trade_RSI_E import Trade_RSI_E
-from modeles.trade_RSI_F import Trade_RSI_F
+from modeles.trade import Trade_Parent
+
 from modeles.BiAPIGeneral import BiAPIGeneral
 from helpers.excelIO import ExcelIO
 
