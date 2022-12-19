@@ -13,6 +13,7 @@ import pandas as pd
 
 import concurrent.futures
 
+from helpers.CSVIO import CSVIO as csvIO
 import modeles.crypto as crypto
 from modeles.crypto import Crypto
 # from modeles.trade import Trade_Parent
@@ -21,6 +22,7 @@ from modeles.BiAPIGeneral import BiAPIGeneral
 from helpers.excelIO import ExcelIO
 
 REFERENCE_CRYPTO = 'ETH'
+EXCLUSION_FILE = '_excluded'
 
 def main():
     print("main training")
@@ -95,7 +97,7 @@ def separate_days(boundaries:dict, api:BiAPIGeneral):
     
     delta = get_proper_timedelta(api)
     for day in datelist:
-        bounds = {"start": day - delta, "finish": day + timedelta(days=1)}
+        bounds = {"start": day - delta, "finish": day + timedelta(days=1), "date":day}
         days.append(bounds)
 
     # print(days)
@@ -148,6 +150,64 @@ def assemble_runs(days:Array, symbols:Array, api:BiAPIGeneral):
                     runs.append(run)
     return runs
 
+def assembleDatas():
+    print("assemble datas")
+    api = BiAPIGeneral()
+    csv = csvIO()
+
+    excluded_crypto_days = csv.readFileList(EXCLUSION_FILE)
+    print(excluded_crypto_days)
+
+    print(len(sys.argv))
+    if len(sys.argv) not in [3, 4]:
+        sys.exit("Training expects a start and end date for the training range")
+    
+    boundaries = test_boundary_dates(sys.argv[1], sys.argv[2])
+    print(boundaries)
+
+    # get reference crypto if given
+    ref = REFERENCE_CRYPTO
+    list = []
+    if len(sys.argv) == 4:
+        list.append(sys.argv[3])
+    else:
+        list = get_crypto_list(api, ref)
+
+    print(list)
+    print(len(list))
+
+    days = separate_days(boundaries, api)
+
+    #get reference length of data for full day
+    delta = get_proper_timedelta(api)
+    yesterday = datetime.today() - timedelta(days=1)
+    kwargs = dict(start = api.convert_time_py_to_bi(yesterday - delta), end = api.convert_time_py_to_bi(yesterday + timedelta(days=1)))
+    expected_length = len(api.get_klines('ETH', 'BTC', **kwargs))
+    print(expected_length)
+
+    for crypto in list:
+        print(crypto)
+        for day in days:
+            fileName = f'{crypto}-{day["date"].strftime("%Y-%m-%d")}'
+            if not csv.isFilePresent(fileName) and not fileName in excluded_crypto_days:
+                kwargs = dict(start = api.convert_time_py_to_bi(day["start"]), end = api.convert_time_py_to_bi(day["finish"]))
+                klines = api.get_klines(crypto, REFERENCE_CRYPTO, **kwargs)
+                #print(len(klines))
+                if len(klines) >= expected_length and fileName != 'EOS-2022-10-05':
+                    print(fileName)
+                    csv.writeFile(fileName, klines)
+                else:
+                    excluded_crypto_days.append(fileName)
+    print(excluded_crypto_days)
+
+    csv.writeList(EXCLUSION_FILE, excluded_crypto_days)
+            
+
+
+
+
+
 
 if __name__ == '__main__': 
-    main()
+    #main()
+    assembleDatas()

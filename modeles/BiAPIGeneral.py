@@ -60,25 +60,48 @@ class BiAPIGeneral:
         start = kwargs['start'] if 'start' in kwargs else ''
         end = kwargs['end'] if 'end' in kwargs else ''
         symbol = f'{symbol}{ref}'
-        url = f'{self.API_URL}{route_url}?symbol={symbol}&interval={self.BASE_INTERVAL}'
-        if(start != ''):
-            url = f'{url}&startTime={start}'
-        if(end != ''):
-            url = f'{url}&endTime={end}'
+        base_url = f'{self.API_URL}{route_url}?symbol={symbol}&interval={self.BASE_INTERVAL}'
         # print(url)
 
         klines = []
         #print(url)
+        if start != '' or end != '':
+            # when the looked period is bound, do as many calls is necessary to get all the klines
+            endPeriod = start
+            while endPeriod < end:
+                #print(f'start: {self.convert_time_bi_to_py(endPeriod)}')
+                #print(f'end: {self.convert_time_bi_to_py(end)}')
+                url = f'{base_url}&startTime={endPeriod}'
+                url = f'{url}&endTime={end}'
+                response = requests.get(url)
+                if(response.status_code == requests.codes.ok):
+                    for k in response.json():
+                        #print(k)
+                        kline = dict(openTime = k[0], open = k[1], high = k[2], low = k[3], close = k[4], volume = k[5], closeTime = k[6], quoteVolume = k[7], nbTrades = k[8], baseAssetVolume = k[9], quoteAssetVolume = k[10])
+                        if len(klines) == 0 or kline['openTime'] != klines[-1]['openTime'] :
+                            klines.append(kline)
+                    endPeriod = klines[-1]['closeTime']
+                else:
+                    break
+                
+            
+        else:
+            if(start != ''):
+                base_url = f'{base_url}&startTime={start}'
+            if(end != ''):
+                base_url = f'{base_url}&endTime={end}'
 
-        response = requests.get(url)
+            response = requests.get(base_url)
 
-        if(response.status_code == requests.codes.ok):
-            for k in response.json():
-                #print(k)
-                kline = dict(openTime = k[0], open = k[1], high = k[2], low = k[3], close = k[4], volume = k[5], closeTime = k[6], quoteVolume = k[7], nbTrades = k[8], baseAssetVolume = k[9], quoteAssetVolume = k[10])
-                klines.append(kline)
-            #print(len(klines))
-            return klines
+            if(response.status_code == requests.codes.ok):
+                for k in response.json():
+                    #print(k)
+                    kline = dict(openTime = k[0], open = k[1], high = k[2], low = k[3], close = k[4], volume = k[5], closeTime = k[6], quoteVolume = k[7], nbTrades = k[8], baseAssetVolume = k[9], quoteAssetVolume = k[10])
+                    klines.append(kline)
+                #print(len(klines))
+
+
+        return klines
 
         # async with session.get(url) as response:
         #     if(response.status != 200):
